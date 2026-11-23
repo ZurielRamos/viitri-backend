@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+
 /**
  * Valida las variables de entorno al arrancar para fallar rápido
  * si falta algo crítico.
@@ -52,8 +54,12 @@ export function validateEnv(
       if (!config[name]) errors.push(`${name} es obligatorio en producción.`);
     }
   }
+  // Decisión del proyecto: por ahora el esquema se gestiona con synchronize
+  // también en el servidor. Se avisa porque puede borrar columnas y datos.
   if (config.NODE_ENV === 'production' && config.DB_SYNCHRONIZE === 'true') {
-    errors.push('DB_SYNCHRONIZE no puede estar activo en producción.');
+    new Logger('EnvValidation').warn(
+      'DB_SYNCHRONIZE está activo en producción: al cambiar una entidad, TypeORM puede borrar columnas y datos.',
+    );
   }
   if (config.STORAGE_BUCKET) {
     for (const name of ['STORAGE_HMAC_ACCESS_KEY', 'STORAGE_HMAC_SECRET']) {

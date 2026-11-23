@@ -1,0 +1,21 @@
+# Nada de secretos ni artefactos locales dentro de la imagen.
+.env
+.env.*
+!.env.example
+
+node_modules
+dist
+coverage
+var
+*.tsbuildinfo
+*.log
+
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+Dockerfile
+.dockerignore
+docker-compose.yml
