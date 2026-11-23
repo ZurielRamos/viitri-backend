@@ -1,0 +1,24 @@
+name: menu
+
+services:
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-menu}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+  # Servidor SMTP de desarrollo: recibe los correos y los muestra en http://localhost:8030
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1030}:1025'
+      - '${MAILPIT_UI_PORT:-8030}:8025'
+volumes:
+  pgdata:
