@@ -14,6 +14,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { Business } from '../../businesses/entities/business.entity.js';
+import { mediaUrlListTransformer } from '../../storage/media-url.js';
 import { ItemKind, PriceType } from '../catalog.enums.js';
 import { Category } from './category.entity.js';
 import { ItemOptionGroup } from './item-option-group.entity.js';
@@ -88,7 +89,12 @@ export class Item {
   priceType: PriceType;
 
   /** La primera es la principal. */
-  @Column({ name: 'image_urls', type: 'jsonb', default: () => "'[]'" })
+  @Column({
+    name: 'image_urls',
+    type: 'jsonb',
+    default: () => "'[]'",
+    transformer: mediaUrlListTransformer,
+  })
   imageUrls: string[];
 
   @Column({ name: 'sort_order', type: 'int', default: 0 })

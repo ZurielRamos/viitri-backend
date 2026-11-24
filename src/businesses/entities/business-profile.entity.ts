@@ -13,6 +13,7 @@ import type {
   OpeningHoursRange,
   SocialLinks,
 } from '../profile/profile.types.js';
+import { mediaUrlTransformer } from '../../storage/media-url.js';
 import { Business } from './business.entity.js';
 
 /**
@@ -33,10 +34,22 @@ export class BusinessProfile {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ name: 'logo_url', type: 'varchar', length: 2048, nullable: true })
+  @Column({
+    name: 'logo_url',
+    type: 'varchar',
+    length: 2048,
+    nullable: true,
+    transformer: mediaUrlTransformer,
+  })
   logoUrl: string | null;
 
-  @Column({ name: 'cover_url', type: 'varchar', length: 2048, nullable: true })
+  @Column({
+    name: 'cover_url',
+    type: 'varchar',
+    length: 2048,
+    nullable: true,
+    transformer: mediaUrlTransformer,
+  })
   coverUrl: string | null;
 
   /** E.164. */

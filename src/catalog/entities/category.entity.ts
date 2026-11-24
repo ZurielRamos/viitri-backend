@@ -11,6 +11,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { Business } from '../../businesses/entities/business.entity.js';
+import { mediaUrlTransformer } from '../../storage/media-url.js';
 import { CategoryDisplayMode } from '../catalog.enums.js';
 
 @Entity({ name: 'catalog_categories' })
@@ -37,7 +38,13 @@ export class Category {
   description: string | null;
 
   /** Foto pequeña (192 × 192) de la categoría; si no hay, se usa `icon`. */
-  @Column({ name: 'image_url', type: 'varchar', length: 2048, nullable: true })
+  @Column({
+    name: 'image_url',
+    type: 'varchar',
+    length: 2048,
+    nullable: true,
+    transformer: mediaUrlTransformer,
+  })
   imageUrl: string | null;
 
   /** Cómo se ven sus productos: fila deslizable, lista o cuadrícula. */
