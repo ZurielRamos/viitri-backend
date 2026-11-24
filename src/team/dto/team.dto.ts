@@ -29,6 +29,10 @@ export class CreateTeamProfileDto {
   @IsOptional()
   @IsBoolean()
   manager?: boolean;
+  /** Recibe las notificaciones push de pedidos y reservas (por defecto, sí). */
+  @IsOptional()
+  @IsBoolean()
+  notifyOrders?: boolean;
 }
 
 export class UpdateTeamProfileDto {
@@ -46,6 +50,10 @@ export class UpdateTeamProfileDto {
   @IsOptional()
   @IsBoolean()
   manager?: boolean;
+  /** Recibe las notificaciones push de pedidos y reservas (por defecto, sí). */
+  @IsOptional()
+  @IsBoolean()
+  notifyOrders?: boolean;
 }
 
 /** Solo el PIN: identifica a la persona dentro del negocio. */

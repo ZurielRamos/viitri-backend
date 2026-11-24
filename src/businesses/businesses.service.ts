@@ -5,7 +5,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { storeUrl } from '../common/store-url.js';
+import {
+  WhatsappNotificationsService,
+  firstName,
+} from '../notifications/whatsapp/whatsapp-notifications.service.js';
 import { DataSource, Not, Repository } from 'typeorm';
 import { isUniqueViolation } from '../common/database-errors.js';
 import { User } from '../users/entities/user.entity.js';
@@ -68,6 +74,8 @@ export class BusinessesService {
     @InjectRepository(BusinessMember)
     private readonly members: Repository<BusinessMember>,
     private readonly users: UsersService,
+    private readonly whatsapp: WhatsappNotificationsService,
+    private readonly config: ConfigService,
   ) {}
 
   /** Crea el negocio y su owner en una sola transacción. */
@@ -103,7 +111,7 @@ export class BusinessesService {
     await this.assertSlugAvailable(dto.slug);
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const created = await this.dataSource.transaction(async (manager) => {
         // El primer negocio de cada usuario es gratis en Básico; los demás
         // Por ahora, un solo negocio por cuenta (el código admite varios).
         // El bloqueo por usuario evita que dos peticiones usen el mismo cupo.
@@ -152,6 +160,16 @@ export class BusinessesService {
         );
         return business;
       });
+      // Bienvenida por WhatsApp, con el botón a la tienda. Nunca lanza.
+      void this.whatsapp.send('negocioListo', owner.phone, {
+        body: [
+          firstName(owner.name),
+          created.name,
+          new URL(storeUrl(this.config, created.slug)).host,
+        ],
+        buttons: [{ url: storeUrl(this.config, created.slug, '/'), days: 90 }],
+      });
+      return created;
     } catch (error) {
       // Carrera: otro request tomó el slug entre la verificación y el insert.
       if (isUniqueViolation(error)) throw new ConflictException(SLUG_TAKEN);

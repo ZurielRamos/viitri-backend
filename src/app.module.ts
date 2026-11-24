@@ -19,7 +19,9 @@ import { MenuModule } from './menu/menu.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { createStorageOptions } from './storage/storage.config.js';
 import { MediaController } from './storage/media.controller.js';
+import { BillingModule } from './billing/billing.module.js';
 import { LogoModule } from './logo/logo.module.js';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TeamModule } from './team/team.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -54,6 +56,8 @@ import { UsersModule } from './users/users.module.js';
     BookingsModule,
     TeamModule,
     LogoModule,
+    ScheduleModule.forRoot(),
+    BillingModule,
   ],
   controllers: [AppController, MediaController],
   providers: [AppService],

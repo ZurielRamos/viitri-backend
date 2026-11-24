@@ -36,6 +36,8 @@ export interface TeamProfile {
   name: string;
   /** Encargado: también cambia el menú y los ajustes. */
   manager: boolean;
+  /** Recibe las notificaciones push de pedidos y reservas. */
+  notifyOrders: boolean;
   createdAt: Date;
 }
 
@@ -143,6 +145,7 @@ export class TeamService {
             businessId,
             userId: user.id,
             role: roleFor(dto.manager),
+            notifyOrders: dto.notifyOrders ?? true,
           }),
         );
         return user.id;
@@ -178,6 +181,15 @@ export class TeamService {
       await this.members.update(
         { businessId, userId: profileId },
         { role: roleFor(dto.manager) },
+      );
+    }
+    if (
+      dto.notifyOrders !== undefined &&
+      dto.notifyOrders !== profile.notifyOrders
+    ) {
+      await this.members.update(
+        { businessId, userId: profileId },
+        { notifyOrders: dto.notifyOrders },
       );
     }
     return this.findOrFail(businessId, profileId);
@@ -272,6 +284,7 @@ export class TeamService {
       id: member.userId,
       name: member.user.name,
       manager: member.role === BusinessRole.Admin,
+      notifyOrders: member.notifyOrders,
       createdAt: member.user.createdAt,
     }));
   }

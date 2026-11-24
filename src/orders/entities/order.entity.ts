@@ -196,6 +196,19 @@ export class Order {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  /** Código del enlace corto de seguimiento (para los avisos por WhatsApp al cliente). */
+  @Column({
+    name: 'tracking_link_code',
+    type: 'varchar',
+    length: 16,
+    nullable: true,
+  })
+  trackingLinkCode: string | null;
+
+  /** Cuándo se avisó al dueño de que nadie veía este pedido pendiente. */
+  @Column({ name: 'owner_alerted_at', type: 'timestamptz', nullable: true })
+  ownerAlertedAt: Date | null;
+
   /** Quién del equipo lo tomó (pedidos creados desde el panel). */
   @Column({
     name: 'taken_by_name',

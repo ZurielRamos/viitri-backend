@@ -128,8 +128,9 @@ describe('TeamService: entrar solo con el PIN', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('sin colaboradores en el plan vigente (prueba vencida), no deja entrar', async () => {
-    business!.trialEndsAt = new Date(Date.now() - 1000);
+  it('sin colaboradores en el plan vigente (prueba vencida y sin gracia), no deja entrar', async () => {
+    // Vencida hace más de los 3 días de gracia.
+    business!.trialEndsAt = new Date(Date.now() - 4 * 86_400_000);
     await expect(
       service.login('donde-pepe', null, { pin: '1234' }),
     ).rejects.toMatchObject({ status: 403 });

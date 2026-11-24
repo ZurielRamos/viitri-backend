@@ -82,6 +82,15 @@ export class Business {
   @Column({ name: 'paid_until', type: 'timestamptz', nullable: true })
   paidUntil: Date | null;
 
+  /** Datos de facturación del último pago, para no pedirlos otra vez. */
+  @Column({ name: 'billing_profile', type: 'jsonb', nullable: true })
+  billingProfile: {
+    fullName: string;
+    email: string;
+    legalIdType: string;
+    legalId: string;
+  } | null;
+
   /**
    * Clave del enlace del equipo ({slug}.dominio/equipo/{clave}). Con ella se
    * ven los nombres del equipo; para entrar, además, el PIN de cada uno.

@@ -9,12 +9,18 @@ import {
 import { NotificationsService } from './notifications.service.js';
 import { AccountMailService } from './mail/account-mail.service.js';
 import { DEFAULT_MAIL_FROM, mailTransport } from './mail/mail.config.js';
+import { PaymentReceiptMail } from './mail/payment-receipt.mail.js';
+import { PlanReminderMail } from './mail/plan-reminder.mail.js';
 import { WelcomeMail } from './mail/welcome.mail.js';
+import { LinksModule } from '../links/links.module.js';
+import { WhatsappNotificationsService } from './whatsapp/whatsapp-notifications.service.js';
 import { LogNotificationSender } from './senders/log.sender.js';
 import { MailNotificationSender } from './senders/smtp-email.sender.js';
 
 @Module({
   imports: [
+    // Enlaces cortos para los botones de las plantillas de WhatsApp.
+    LinksModule,
     MailModule.forRootAsync({
       inject: [ConfigService],
       // Corre al arrancar: un SMTP_HOST o SMTP_PORT inválido detiene la app aquí.
@@ -42,8 +48,15 @@ import { MailNotificationSender } from './senders/smtp-email.sender.js';
     },
     NotificationsService,
     WelcomeMail,
+    PlanReminderMail,
+    PaymentReceiptMail,
     AccountMailService,
+    WhatsappNotificationsService,
   ],
-  exports: [NotificationsService, AccountMailService],
+  exports: [
+    NotificationsService,
+    AccountMailService,
+    WhatsappNotificationsService,
+  ],
 })
 export class NotificationsModule {}

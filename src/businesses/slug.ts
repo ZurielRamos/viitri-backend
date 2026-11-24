@@ -13,6 +13,8 @@ export const RESERVED_SLUGS = new Set([
   'app',
   'auth',
   'dashboard',
+  // dev.viitri.com: la API de desarrollo por el túnel de Cloudflare.
+  'dev',
   'help',
   'mail',
   'public',

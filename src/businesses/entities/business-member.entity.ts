@@ -28,6 +28,12 @@ export class BusinessMember {
 
   @Column({ type: 'enum', enum: BusinessRole, enumName: 'business_role' })
   role: BusinessRole;
+  /**
+   * Recibe las notificaciones push de pedidos y reservas en sus celulares.
+   * El dueño lo decide por colaborador; el suyo, en su propio celular.
+   */
+  @Column({ name: 'notify_orders', type: 'boolean', default: true })
+  notifyOrders: boolean;
 
   @ManyToOne(() => Business, (business) => business.members, {
     onDelete: 'CASCADE',

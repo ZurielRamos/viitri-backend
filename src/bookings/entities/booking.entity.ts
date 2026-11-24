@@ -139,6 +139,19 @@ export class Booking {
   })
   cancelReason: string | null;
 
+  /** Código del enlace corto de seguimiento (avisos por WhatsApp al cliente). */
+  @Column({
+    name: 'tracking_link_code',
+    type: 'varchar',
+    length: 16,
+    nullable: true,
+  })
+  trackingLinkCode: string | null;
+
+  /** Cuándo se envió el recordatorio del día de la reserva. */
+  @Column({ name: 'reminded_at', type: 'timestamptz', nullable: true })
+  remindedAt: Date | null;
+
   @Index('idx_bookings_tracking', { unique: true })
   @Column({ name: 'tracking_token_hash', type: 'char', length: 64 })
   trackingTokenHash: string;

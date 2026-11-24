@@ -45,6 +45,7 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from './order.enums.js';
+import { OrderNotificationsService } from './order-notifications.service.js';
 
 /** Lo que define el precio de un pedido. */
 export interface OrderDraft {
@@ -102,6 +103,7 @@ export class OrdersService {
     @InjectRepository(Order) private readonly orders: Repository<Order>,
     private readonly pricing: OrderPricingService,
     @Inject(DISTANCE_PROVIDER) private readonly distance: DistanceProvider,
+    private readonly notifications: OrderNotificationsService,
   ) {}
 
   // ---------- Cotización ----------
@@ -282,10 +284,10 @@ export class OrdersService {
       return order.id;
     });
 
-    return {
-      order: await this.findOneOrFail(business.id, orderId),
-      trackingToken,
-    };
+    const order = await this.findOneOrFail(business.id, orderId);
+    // Confirmación al cliente por WhatsApp, sin hacerlo esperar.
+    void this.notifications.placed(business, order, trackingToken);
+    return { order, trackingToken };
   }
 
   // ---------- Consultas ----------
@@ -390,7 +392,9 @@ export class OrdersService {
 
     await this.transition(order, target, dto.reason);
     if (by) await this.orders.update({ id, businessId }, { handledByName: by });
-    return this.findOneOrFail(businessId, id);
+    const updated = await this.findOneOrFail(businessId, id);
+    void this.notifications.statusChanged(updated);
+    return updated;
   }
 
   async markPaid(
@@ -433,7 +437,9 @@ export class OrdersService {
       OrderStatus.Cancelled,
       'Cancelado por el cliente.',
     );
-    return this.findByTrackingToken(businessId, token);
+    const cancelled = await this.findByTrackingToken(businessId, token);
+    void this.notifications.cancelledByCustomer(cancelled);
+    return cancelled;
   }
 
   // ---------- Internos ----------

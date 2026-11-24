@@ -20,10 +20,26 @@ import {
   TabsController,
 } from './tabs.controller.js';
 import { TabsService } from './tabs.service.js';
+import { Business } from '../businesses/entities/business.entity.js';
+import { BusinessMember } from '../businesses/entities/business-member.entity.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { PushModule } from '../push/push.module.js';
+import { OrderNotificationsService } from './order-notifications.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, OrderTab, Item]),
+    TypeOrmModule.forFeature([
+      Order,
+      OrderItem,
+      OrderTab,
+      Item,
+      Business,
+      BusinessMember,
+    ]),
+    // Avisos por WhatsApp de los pedidos.
+    NotificationsModule,
+    // Notificaciones push al equipo y a los clientes.
+    PushModule,
     BusinessesModule,
     CustomersModule,
     MenuModule,
@@ -37,7 +53,13 @@ import { TabsService } from './tabs.service.js';
     ReportsController,
     PublicTabsController,
   ],
-  providers: [OrdersService, OrderPricingService, TabsService, ReportsService],
+  providers: [
+    OrderNotificationsService,
+    OrdersService,
+    OrderPricingService,
+    TabsService,
+    ReportsService,
+  ],
   exports: [OrdersService],
 })
 export class OrdersModule {}

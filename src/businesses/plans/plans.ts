@@ -31,11 +31,18 @@ export interface PlanDefinition {
 /** Días de prueba gratis de Avanzado y Pro. */
 export const TRIAL_DAYS = 14;
 
+/**
+ * Días de gracia al vencer la prueba o el pago: el plan sigue funcionando
+ * mientras se le avisa que pague, y luego pasa a Básico.
+ */
+export const GRACE_DAYS = 3;
+const DAY_MS = 86_400_000;
+
 export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     id: 'basic',
     name: 'Básico',
-    monthlyPrice: 14_900,
+    monthlyPrice: 0,
     maxMembers: 1,
     maxTeamProfiles: 0,
     trialDays: 0,
@@ -48,7 +55,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     id: 'advanced',
     name: 'Avanzado',
-    monthlyPrice: 29_900,
+    monthlyPrice: 19_900,
     maxMembers: 5,
     maxTeamProfiles: 4,
     trialDays: TRIAL_DAYS,
@@ -62,7 +69,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
   {
     id: 'pro',
     name: 'Pro',
-    monthlyPrice: 59_900,
+    monthlyPrice: 29_900,
     maxMembers: 15,
     maxTeamProfiles: 14,
     trialDays: TRIAL_DAYS,
@@ -101,29 +108,46 @@ export interface PlanState {
  */
 export function effectivePlan(state: PlanState, now = new Date()): Plan {
   if (state.plan === 'basic') return 'basic';
+  const until = coveredUntil(state);
+  return until && until.getTime() + GRACE_DAYS * DAY_MS > now.getTime()
+    ? state.plan
+    : 'basic';
+}
+
+/** Hasta cuándo está cubierto el plan (prueba o pago), sin contar la gracia. */
+export function coveredUntil(state: PlanState): Date | null {
   const until = Math.max(
     state.trialEndsAt?.getTime() ?? 0,
     state.paidUntil?.getTime() ?? 0,
   );
-  return until > now.getTime() ? state.plan : 'basic';
+  return until ? new Date(until) : null;
 }
 
-/** Para mostrar: el plan vigente y, si está en prueba, cuántos días le quedan. */
+/** Para mostrar: el plan vigente, la prueba, el vencimiento y la gracia. */
 export function planStatus(state: PlanState, now = new Date()) {
   const current = effectivePlan(state, now);
-  const paid = Boolean(state.paidUntil && state.paidUntil > now);
-  const trial =
-    !paid && current !== 'basic' && state.trialEndsAt
-      ? Math.max(
-          1,
-          Math.ceil((state.trialEndsAt.getTime() - now.getTime()) / 86_400_000),
-        )
-      : null;
+  const until = coveredUntil(state);
+  const paid = Boolean(
+    state.paidUntil && until && state.paidUntil.getTime() >= until.getTime(),
+  );
+  const daysTo = (date: Date) =>
+    Math.ceil((date.getTime() - now.getTime()) / DAY_MS);
+  const covered = until !== null && until.getTime() > now.getTime();
   return {
     effectivePlan: current,
     /** Días de prueba que quedan; `null` si no está en prueba. */
-    trialDaysLeft: trial,
-    /** Eligió un plan de pago y se le venció la prueba sin pagar. */
+    trialDaysLeft:
+      !paid && current !== 'basic' && covered && until
+        ? Math.max(1, daysTo(until))
+        : null,
+    /** Días de plan pagado que quedan; `null` si no está pagado. */
+    paidDaysLeft: paid && covered && until ? Math.max(1, daysTo(until)) : null,
+    /** Venció, pero sigue funcionando unos días: hay que pagar ya. */
+    graceDaysLeft:
+      current !== 'basic' && !covered && until
+        ? Math.max(1, daysTo(new Date(until.getTime() + GRACE_DAYS * DAY_MS)))
+        : null,
+    /** Eligió un plan de pago y se le venció (prueba o pago) sin pagar. */
     expired: state.plan !== 'basic' && current === 'basic',
   };
 }

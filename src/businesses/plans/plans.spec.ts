@@ -5,7 +5,7 @@ const now = new Date('2026-05-10T12:00:00Z');
 const days = (n: number) => new Date(now.getTime() + n * 86_400_000);
 
 describe('planes: prueba gratis y plan vigente', () => {
-  it('Avanzado rige durante la prueba y vuelve a Básico al vencer', () => {
+  it('Avanzado rige durante la prueba, sigue 3 días de gracia y luego vuelve a Básico', () => {
     const state = {
       plan: 'advanced' as const,
       trialEndsAt: days(3),
@@ -14,12 +14,22 @@ describe('planes: prueba gratis y plan vigente', () => {
     expect(effectivePlan(state, now)).toBe('advanced');
     expect(planStatus(state, now)).toMatchObject({
       trialDaysLeft: 3,
+      graceDaysLeft: null,
       expired: false,
     });
-    const later = days(4);
+    // Al día siguiente de vencer: en gracia, todavía funciona.
+    const inGrace = days(4);
+    expect(effectivePlan(state, inGrace)).toBe('advanced');
+    expect(planStatus(state, inGrace)).toMatchObject({
+      trialDaysLeft: null,
+      graceDaysLeft: 2,
+      expired: false,
+    });
+    // Pasada la gracia: Básico.
+    const later = days(7);
     expect(effectivePlan(state, later)).toBe('basic');
     expect(planStatus(state, later)).toMatchObject({
-      trialDaysLeft: null,
+      graceDaysLeft: null,
       expired: true,
     });
   });
@@ -31,7 +41,10 @@ describe('planes: prueba gratis y plan vigente', () => {
       paidUntil: days(10),
     };
     expect(effectivePlan(state, now)).toBe('pro');
-    expect(planStatus(state, now).trialDaysLeft).toBeNull();
+    expect(planStatus(state, now)).toMatchObject({
+      trialDaysLeft: null,
+      paidDaysLeft: 10,
+    });
   });
 
   it('en Básico el menú no recibe pedidos; en Avanzado vigente, sí', () => {

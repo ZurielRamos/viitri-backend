@@ -1,4 +1,5 @@
 import { GeoModule } from '../geo/geo.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { BusinessImagesService } from './profile/business-images.service.js';
 import { ThemeSuggestionService } from './profile/theme-suggestion.service.js';
 import { FeatureCatalogController } from './catalog-features/feature-catalog.controller.js';
@@ -24,6 +25,8 @@ import { BusinessesService } from './businesses.service.js';
     TypeOrmModule.forFeature([Business, BusinessMember, BusinessProfile]),
     UsersModule,
     GeoModule,
+    // Avisos por WhatsApp (bienvenida al crear el negocio).
+    NotificationsModule,
   ],
   controllers: [
     BusinessesController,

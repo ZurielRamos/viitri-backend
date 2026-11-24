@@ -48,6 +48,7 @@ import type {
 import { BookingSettings } from './entities/booking-settings.entity.js';
 import { Booking } from './entities/booking.entity.js';
 import { Professional } from './entities/professional.entity.js';
+import { BookingNotificationsService } from './booking-notifications.service.js';
 
 const MINUTE = 60_000;
 /** Sin profesionales, el negocio atiende una cita a la vez. */
@@ -91,6 +92,7 @@ export class BookingsService {
     private readonly professionals: Repository<Professional>,
     @InjectRepository(Item)
     private readonly items: Repository<Item>,
+    private readonly notifications: BookingNotificationsService,
   ) {}
 
   // ---------- Ajustes ----------
@@ -472,10 +474,10 @@ export class BookingsService {
       );
       return saved.id;
     });
-    return {
-      booking: await this.findOneOrFail(business.id, id),
-      trackingToken,
-    };
+    const booking = await this.findOneOrFail(business.id, id);
+    // Aviso al dueño (si hay que confirmarla) o al cliente (si ya quedó confirmada).
+    void this.notifications.created(business, booking, trackingToken);
+    return { booking, trackingToken };
   }
 
   async findOneOrFail(businessId: string, id: string): Promise<Booking> {
@@ -533,7 +535,9 @@ export class BookingsService {
     booking.status = status;
     if (status === BookingStatus.Cancelled)
       booking.cancelReason = reason ?? null;
-    return this.bookings.save(booking);
+    const saved = await this.bookings.save(booking);
+    void this.notifications.statusChanged(saved);
+    return saved;
   }
 
   /** El cliente cancela antes de que empiece. */
@@ -572,7 +576,9 @@ export class BookingsService {
     }
     booking.status = BookingStatus.Cancelled;
     booking.cancelReason = 'Cancelada por el cliente.';
-    return this.bookings.save(booking);
+    const saved = await this.bookings.save(booking);
+    void this.notifications.cancelledByCustomer(saved);
+    return saved;
   }
 
   // ---------- Internos ----------
