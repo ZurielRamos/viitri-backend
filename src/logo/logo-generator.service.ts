@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import sharp from 'sharp';
+import { tightenLogo } from '../storage/logo-trim.js';
 import { TTL_STORE, type TtlStore } from '../common/ttl-store/ttl-store.js';
 import { buildLogoPrompt, type LogoAnswers } from './logo-prompt.js';
 
@@ -118,8 +119,12 @@ export class LogoGeneratorService {
     if (json.usage?.cost !== undefined) {
       this.logger.log(`Logo generado con ${model}: US$ ${json.usage.cost}`);
     }
-    const image = await sharp(Buffer.from(match[1], 'base64'))
+    const flat = await sharp(Buffer.from(match[1], 'base64'))
       .flatten({ background: '#ffffff' })
+      .png()
+      .toBuffer();
+    // Sin el aire que suele dejar el modelo alrededor del logo.
+    const image = await sharp(await tightenLogo(flat))
       .resize(OUTPUT_SIDE, OUTPUT_SIDE, {
         fit: 'contain',
         background: '#ffffff',

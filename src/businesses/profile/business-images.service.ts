@@ -12,6 +12,7 @@ import {
   appIconKey,
   buildAppIcons,
 } from '../../storage/app-icons.js';
+import { tightenLogo } from '../../storage/logo-trim.js';
 import { IMAGES_DISK } from '../../storage/storage.config.js';
 import { BusinessProfile } from '../entities/business-profile.entity.js';
 
@@ -49,7 +50,9 @@ export class BusinessImagesService {
     kind: ImageKind,
     file: Buffer,
   ): Promise<{ url: string }> {
-    const webp = await optimizeImage(file, IMAGE_SIZES[kind]);
+    // El logo sin el borde vacío: llena el avatar redondo y el favicon.
+    const source = kind === 'logo' ? await tightenLogo(file) : file;
+    const webp = await optimizeImage(source, IMAGE_SIZES[kind]);
     // Nombre nuevo en cada subida: el celular y la CDN nunca ven una versión vieja.
     const key = `businesses/${businessId}/${kind}-${randomUUID()}.webp`;
     await this.images.put(key, webp, {
