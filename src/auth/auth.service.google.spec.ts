@@ -12,7 +12,7 @@ const LOGIN = {
   idToken: 'id-token-de-prueba-largo',
   nonce: 'nonce-de-prueba-123',
 };
-const PHONE = { phone: '+573001234567', code: '1234' };
+const PHONE = { phone: '+573001234567', code: '123456' };
 
 const user = (patch: Partial<User>) =>
   ({

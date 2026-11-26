@@ -86,12 +86,12 @@ describe('OtpService', () => {
   });
 
   describe('send', () => {
-    it('genera un código de 4 dígitos y lo envía al número normalizado', async () => {
+    it('genera un código de 6 dígitos y lo envía al número normalizado', async () => {
       await service.send(TARGET);
 
       expect(sendAuthCode).toHaveBeenCalledWith(
         '573001234567',
-        expect.stringMatching(/^\d{4}$/),
+        expect.stringMatching(/^\d{6}$/),
       );
       expect(Number(sentCode())).toBeGreaterThanOrEqual(1000);
     });
@@ -222,7 +222,7 @@ describe('OtpService', () => {
     it('devuelve mismatch, cuenta el intento y conserva el TTL', async () => {
       await service.send(TARGET);
       store.advance(100);
-      const wrong = sentCode() === '1111' ? '2222' : '1111';
+      const wrong = sentCode() === '111111' ? '222222' : '111111';
 
       expect(await service.verify(TARGET, wrong)).toEqual({
         status: 'mismatch',
@@ -237,7 +237,7 @@ describe('OtpService', () => {
     it('bloquea y borra el código tras agotar los intentos, aunque acierte', async () => {
       await service.send(TARGET);
       const code = sentCode();
-      const wrong = code === '1111' ? '2222' : '1111';
+      const wrong = code === '111111' ? '222222' : '111111';
 
       for (let i = 0; i < OTP_MAX_ATTEMPTS; i++) {
         expect((await service.verify(TARGET, wrong)).status).toBe('mismatch');

@@ -20,8 +20,8 @@ import {
 
 export const OTP_TTL_SECONDS = 5 * 60;
 export const OTP_COOLDOWN_SECONDS = 30;
-/** Con 4 dígitos los intentos son pocos y hay tope por hora, para que adivinar no sea viable. */
-export const OTP_LENGTH = 4;
+/** 6 dígitos (un millón de combinaciones), con pocos intentos y tope por hora: adivinarlo no es viable. */
+export const OTP_LENGTH = 6;
 export const OTP_MAX_ATTEMPTS = 3;
 export const OTP_HOURLY_LIMIT = 5;
 const ONE_HOUR_SECONDS = 60 * 60;

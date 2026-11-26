@@ -26,7 +26,7 @@ export class RequestOtpDto {
 
 export class VerifyOtpDto extends RequestOtpDto {
   @IsString()
-  @Matches(/^\d{4}$/, { message: 'El código debe tener 4 dígitos.' })
+  @Matches(/^\d{6}$/, { message: 'El código debe tener 6 dígitos.' })
   code: string;
 }
 
