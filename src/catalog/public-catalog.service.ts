@@ -31,6 +31,10 @@ export class PublicCatalogService {
       }),
       this.items.find({
         where: { businessId, isActive: true, kind: In(kinds) },
+        // Una consulta por relación en vez de un solo JOIN: con variantes,
+        // grupos y opciones, el JOIN multiplica las filas (productos ×
+        // variantes × opciones) y tardaba segundos con un menú normal.
+        relationLoadStrategy: 'query',
         relations: {
           variants: true,
           optionGroupLinks: { group: { options: true } },

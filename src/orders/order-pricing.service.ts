@@ -44,6 +44,8 @@ export class OrderPricingService {
     const ids = [...new Set(items.map((i) => i.itemId))];
     const found = await this.items.find({
       where: { businessId, id: In(ids) },
+      // Sin el JOIN que multiplica filas (ver PublicCatalogService).
+      relationLoadStrategy: 'query',
       relations: {
         category: true,
         variants: true,
