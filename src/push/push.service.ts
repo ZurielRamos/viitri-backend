@@ -157,6 +157,64 @@ export class PushService {
     else await this.devices.save(device);
   }
 
+  /**
+   * Envía un aviso de prueba a este celular y dice qué pasó, para que la
+   * persona confirme que le llegan (y para ver por qué no, sin revisar logs).
+   */
+  async test(
+    endpoint: string,
+    userId: string,
+  ): Promise<{ sent: boolean; error?: string }> {
+    const device = await this.devices.findOneBy({ endpoint, userId });
+    if (!device)
+      return {
+        sent: false,
+        error: 'Este celular no tiene los avisos activos.',
+      };
+    if (!this.vapid)
+      return {
+        sent: false,
+        error: 'Las notificaciones no están configuradas en el servidor.',
+      };
+    try {
+      await this.sendFn(
+        {
+          endpoint: device.endpoint,
+          keys: { p256dh: device.p256dh, auth: device.auth },
+        },
+        JSON.stringify({
+          title: 'Así te avisaremos',
+          body: 'Cuando llegue un pedido o una reserva, verás un aviso como este.',
+          url: '/configuracion/pedidos',
+          tag: 'push-test',
+        } satisfies PushMessage),
+        { vapidDetails: this.vapid, TTL: 60, urgency: 'high', timeout: 10_000 },
+      );
+      return { sent: true };
+    } catch (error) {
+      const status = (error as { statusCode?: number }).statusCode;
+      const body = String((error as { body?: string }).body ?? error).slice(
+        0,
+        200,
+      );
+      this.logger.warn(`Push de prueba: ${status ?? ''} ${body}`);
+      if (status === 404 || status === 410) {
+        await this.devices.delete({ id: device.id });
+        return {
+          sent: false,
+          error: 'Este celular dio de baja los avisos. Vuelve a activarlos.',
+        };
+      }
+      return {
+        sent: false,
+        error:
+          status === 401 || status === 403
+            ? 'Las claves de notificaciones del servidor no coinciden con las de este celular. Desactiva y vuelve a activar los avisos.'
+            : `El servicio de notificaciones respondió ${status ?? 'con un error'}: ${body}`,
+      };
+    }
+  }
+
   /** Si este celular tiene los avisos activos para esa persona. */
   async isRegistered(
     endpoint: string,

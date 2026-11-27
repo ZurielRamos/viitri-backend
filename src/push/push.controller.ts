@@ -55,6 +55,13 @@ export class StaffPushController {
     return { active: false };
   }
 
+  /** Aviso de prueba a este celular. */
+  @HttpCode(200)
+  @Post('test')
+  test(@CurrentUser() user: User, @Body() dto: PushEndpointDto) {
+    return this.push.test(dto.endpoint, user.id);
+  }
+
   @HttpCode(200)
   @Post('status')
   async status(@CurrentUser() user: User, @Body() dto: PushEndpointDto) {
