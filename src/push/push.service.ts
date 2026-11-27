@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import webpush from 'web-push';
+import { BusinessProfile } from '../businesses/entities/business-profile.entity.js';
 import type { Business } from '../businesses/entities/business.entity.js';
 import type { PushSubscriptionDto } from './dto/push.dto.js';
 import { PushDevice } from './push-device.entity.js';
@@ -108,6 +109,8 @@ export class PushService {
     @InjectRepository(PushDevice)
     private readonly devices: Repository<PushDevice>,
     @Inject(WEB_PUSH_SEND) private readonly sendFn: WebPushSend,
+    @InjectRepository(BusinessProfile)
+    private readonly profiles: Repository<BusinessProfile>,
   ) {
     const publicKey = config.get<string>('VAPID_PUBLIC_KEY');
     const privateKey = config.get<string>('VAPID_PRIVATE_KEY');
@@ -219,6 +222,7 @@ export class PushService {
           body: 'Cuando llegue un pedido o una reserva, verás un aviso como este.',
           url: '/configuracion/pedidos',
           tag: 'push-test',
+          icon: await this.iconFor(device.businessId),
         } satisfies PushMessage),
         { vapidDetails: this.vapid, TTL: 60, urgency: 'high', timeout: 10_000 },
       );
@@ -334,13 +338,28 @@ export class PushService {
     }
   }
 
+  /** Ícono del negocio para el aviso: el de su app, o el de viitri si no tiene logo. */
+  private async iconFor(businessId: string): Promise<string> {
+    const profile = await this.profiles
+      .findOne({
+        where: { businessId },
+        select: { businessId: true, logoUrl: true },
+      })
+      .catch(() => null);
+    return storeIcon({ profile } as Pick<Business, 'profile'>);
+  }
+
   private async deliver(
     devices: PushDevice[],
     message: PushMessage,
     { ttlSeconds, urgency }: PushDelivery,
   ): Promise<number> {
     if (!devices.length) return 0;
-    const payload = JSON.stringify(message);
+    // Siempre con el logo del negocio (los avisos del plan no lo traen).
+    const payload = JSON.stringify({
+      ...message,
+      icon: message.icon ?? (await this.iconFor(devices[0].businessId)),
+    });
     if (!this.vapid) {
       // Sin claves VAPID (desarrollo): se escribe en el log.
       this.logger.log(`[Push → ${devices.length} celular(es)] ${payload}`);

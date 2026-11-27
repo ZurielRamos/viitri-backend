@@ -84,6 +84,11 @@ function service(
     config(keys ? { VAPID_PUBLIC_KEY: 'pub', VAPID_PRIVATE_KEY: 'priv' } : {}),
     repo as unknown as Repository<PushDevice>,
     send,
+    {
+      findOne: vi.fn(() =>
+        Promise.resolve({ logoUrl: 'https://cdn/x/logo-1.webp' }),
+      ),
+    } as never,
   );
 }
 
@@ -198,7 +203,11 @@ describe('PushService', () => {
       string,
       { urgency: string; vapidDetails: { publicKey: string } },
     ];
-    expect(JSON.parse(payload)).toMatchObject({ url: '/mis-pedidos/o1' });
+    // Sin ícono en el mensaje, va el del logo del negocio.
+    expect(JSON.parse(payload)).toMatchObject({
+      url: '/mis-pedidos/o1',
+      icon: 'https://cdn/x/logo-1-icon-192.png',
+    });
     expect(options).toMatchObject({
       urgency: 'high',
       vapidDetails: { publicKey: 'pub' },

@@ -8,12 +8,13 @@ import {
   PublicPushKeyController,
   StaffPushController,
 } from './push.controller.js';
+import { BusinessProfile } from '../businesses/entities/business-profile.entity.js';
 import { PushDevice } from './push-device.entity.js';
 import { PushService, WEB_PUSH_SEND } from './push.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PushDevice]),
+    TypeOrmModule.forFeature([PushDevice, BusinessProfile]),
     BusinessesModule,
     CustomersModule,
   ],
