@@ -2,9 +2,11 @@ import type { ConfigService } from '@nestjs/config';
 import type { Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { PushDevice } from './push-device.entity.js';
+import webpush from 'web-push';
 import {
   PushService,
   isPushEndpoint,
+  vapidKeysMatch,
   storeIcon,
   type WebPushSend,
 } from './push.service.js';
@@ -220,5 +222,15 @@ describe('PushService', () => {
       service(repo).toCustomer(null, { title: 't', body: 'b', url: '/' }),
     ).resolves.toBe(0);
     expect(repo.findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe('vapidKeysMatch', () => {
+  it('reconoce un par de claves y rechaza claves de pares distintos', () => {
+    const a = webpush.generateVAPIDKeys();
+    const b = webpush.generateVAPIDKeys();
+    expect(vapidKeysMatch(a.publicKey, a.privateKey)).toBe(true);
+    expect(vapidKeysMatch(a.publicKey, b.privateKey)).toBe(false);
+    expect(vapidKeysMatch(a.publicKey, 'no-es-una-clave')).toBe(false);
   });
 });

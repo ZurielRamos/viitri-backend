@@ -1,3 +1,4 @@
+import { createECDH } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -63,6 +64,21 @@ export function isPushEndpoint(endpoint: string): boolean {
   }
 }
 
+/**
+ * Si la clave privada VAPID corresponde a la pública. Si no, los servicios de
+ * push rechazan cada envío (401/403) aunque el celular se suscriba de nuevo.
+ */
+export function vapidKeysMatch(publicKey: string, privateKey: string): boolean {
+  try {
+    const ecdh = createECDH('prime256v1');
+    ecdh.setPrivateKey(Buffer.from(privateKey.trim(), 'base64url'));
+    const derived = ecdh.getPublicKey().toString('base64url');
+    return derived === publicKey.trim().replace(/=+$/, '');
+  } catch {
+    return false;
+  }
+}
+
 /** Ícono de la app de la tienda (lo crea la API al subir el logo, como en el manifiesto). */
 export function storeIcon(business: Pick<Business, 'profile'>): string {
   const logo = business.profile?.logoUrl;
@@ -79,6 +95,8 @@ export function storeIcon(business: Pick<Business, 'profile'>): string {
 @Injectable()
 export class PushService {
   private readonly logger = new Logger(PushService.name);
+  /** La clave privada no es la pareja de la pública (mal configuradas). */
+  private readonly keysMismatch: boolean;
   private readonly vapid: {
     subject: string;
     publicKey: string;
@@ -104,6 +122,14 @@ export class PushService {
             privateKey,
           }
         : null;
+    this.keysMismatch = Boolean(
+      publicKey && privateKey && !vapidKeysMatch(publicKey, privateKey),
+    );
+    if (this.keysMismatch) {
+      this.logger.error(
+        'VAPID_PRIVATE_KEY no corresponde a VAPID_PUBLIC_KEY: ningún aviso push va a llegar. Genera un par nuevo con `npx web-push generate-vapid-keys` y pon las dos claves juntas.',
+      );
+    }
   }
 
   /** Clave pública para `pushManager.subscribe`. Sin claves, `null` (la web no ofrece los avisos). */
@@ -175,6 +201,12 @@ export class PushService {
       return {
         sent: false,
         error: 'Las notificaciones no están configuradas en el servidor.',
+      };
+    if (this.keysMismatch)
+      return {
+        sent: false,
+        error:
+          'En el servidor, la clave privada de notificaciones (VAPID_PRIVATE_KEY) no corresponde a la pública (VAPID_PUBLIC_KEY). Hay que poner las dos del mismo par.',
       };
     try {
       await this.sendFn(
