@@ -14,9 +14,17 @@ export function createAiOptions(config: ConfigService): AiModuleOptions {
   const openrouter = createOpenAICompatible({
     name: 'openrouter',
     baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: config.get<string>('OPENROUTER_API_KEY') ?? '',
     // OpenRouter muestra la app en su panel con estos encabezados.
     headers: { 'HTTP-Referer': 'https://viitri.com', 'X-Title': 'viitri' },
+    // La clave se lee en cada petición: si cambia desde el panel, rige ya.
+    fetch: (input, init) => {
+      const headers = new Headers(init?.headers);
+      headers.set(
+        'Authorization',
+        `Bearer ${config.get<string>('OPENROUTER_API_KEY') ?? ''}`,
+      );
+      return fetch(input, { ...init, headers });
+    },
     supportsStructuredOutputs: true,
   });
   return {

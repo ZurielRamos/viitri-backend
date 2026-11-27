@@ -26,6 +26,7 @@
     "migration:run": "npm run build && npm run typeorm -- migration:run",
     "migration:revert": "npm run build && npm run typeorm -- migration:revert",
     "admin:promote": "npm run build && node --env-file-if-exists=.env dist/scripts/promote-super-admin.js",
+    "admin:seed": "npm run build && node --env-file-if-exists=.env dist/scripts/seed-admin.js",
     "geo:co": "node scripts/build-geo-co.mjs"
   },
   "dependencies": {

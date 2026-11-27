@@ -29,6 +29,11 @@ const ONE_HOUR_SECONDS = 60 * 60;
 /** Cliente de WhatsApp, o `null` si no hay credenciales (solo desarrollo). */
 export const WHATSAPP_CLIENT = Symbol('WHATSAPP_CLIENT');
 
+/** Entrega el cliente vigente: se lee en cada envío, para aplicar los cambios del panel. */
+export interface WhatsappClientResolver {
+  current(): WhatsappAuthTemplateClient | null;
+}
+
 export interface OtpTarget {
   /** Para qué se pide el código, por ejemplo `auth`. */
   purpose: string;
@@ -54,7 +59,7 @@ export class OtpService {
   constructor(
     @Inject(TTL_STORE) private readonly store: TtlStore,
     @Inject(WHATSAPP_CLIENT)
-    private readonly whatsapp: WhatsappAuthTemplateClient | null,
+    private readonly whatsapp: WhatsappClientResolver,
     private readonly config: ConfigService,
   ) {}
 
@@ -138,8 +143,9 @@ export class OtpService {
   }
 
   private async deliver(phone: string, code: string): Promise<void> {
-    if (this.whatsapp) {
-      await this.whatsapp.sendAuthCode(phone, code);
+    const client = this.whatsapp.current();
+    if (client) {
+      await client.sendAuthCode(phone, code);
       return;
     }
     if (this.config.get<string>('NODE_ENV') === 'production') {

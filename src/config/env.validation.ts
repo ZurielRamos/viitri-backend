@@ -74,6 +74,17 @@ export function validateEnv(
   if (config.NODE_ENV === 'production' && !config.API_PUBLIC_URL) {
     errors.push('API_PUBLIC_URL es obligatorio en producción.');
   }
+  // Cifra las credenciales guardadas desde el panel del equipo.
+  if (
+    config.NODE_ENV === 'production' &&
+    (typeof config.SETTINGS_ENCRYPTION_KEY !== 'string' ||
+      config.SETTINGS_ENCRYPTION_KEY.length < 32)
+  ) {
+    errors.push(
+      'SETTINGS_ENCRYPTION_KEY es obligatorio en producción (al menos 32 caracteres).',
+    );
+  }
+
   if (errors.length) throw new Error(errors.join('\n'));
   return config;
 }

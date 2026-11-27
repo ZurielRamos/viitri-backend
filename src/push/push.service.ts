@@ -93,46 +93,65 @@ export function storeIcon(business: Pick<Business, 'profile'>): string {
  * VAPID no se envía nada: cada aviso se escribe en el log. Nunca lanza: un
  * aviso que falla no frena el pedido ni la reserva.
  */
+interface Vapid {
+  subject: string;
+  publicKey: string;
+  privateKey: string;
+}
+
 @Injectable()
 export class PushService {
   private readonly logger = new Logger(PushService.name);
-  /** La clave privada no es la pareja de la pública (mal configuradas). */
-  private readonly keysMismatch: boolean;
-  private readonly vapid: {
-    subject: string;
-    publicKey: string;
-    privateKey: string;
-  } | null;
+  /** Claves vigentes; se recalculan cuando cambian desde el panel. */
+  private cached: {
+    signature: string;
+    vapid: Vapid | null;
+    keysMismatch: boolean;
+  } | null = null;
 
   constructor(
-    config: ConfigService,
+    private readonly config: ConfigService,
     @InjectRepository(PushDevice)
     private readonly devices: Repository<PushDevice>,
     @Inject(WEB_PUSH_SEND) private readonly sendFn: WebPushSend,
     @InjectRepository(BusinessProfile)
     private readonly profiles: Repository<BusinessProfile>,
   ) {
-    const publicKey = config.get<string>('VAPID_PUBLIC_KEY');
-    const privateKey = config.get<string>('VAPID_PRIVATE_KEY');
-    this.vapid =
-      publicKey && privateKey
-        ? {
-            subject: config.get<string>(
-              'VAPID_SUBJECT',
-              'mailto:soporte@viitri.com',
-            ),
-            publicKey,
-            privateKey,
-          }
-        : null;
-    this.keysMismatch = Boolean(
-      publicKey && privateKey && !vapidKeysMatch(publicKey, privateKey),
-    );
-    if (this.keysMismatch) {
-      this.logger.error(
-        'VAPID_PRIVATE_KEY no corresponde a VAPID_PUBLIC_KEY: ningún aviso push va a llegar. Genera un par nuevo con `npx web-push generate-vapid-keys` y pon las dos claves juntas.',
+    this.keys();
+  }
+
+  private keys() {
+    const publicKey = this.config.get<string>('VAPID_PUBLIC_KEY');
+    const privateKey = this.config.get<string>('VAPID_PRIVATE_KEY');
+    const subject =
+      this.config.get<string>('VAPID_SUBJECT') || 'mailto:soporte@viitri.com';
+    const signature = `${publicKey}|${privateKey}|${subject}`;
+    if (this.cached?.signature !== signature) {
+      const keysMismatch = Boolean(
+        publicKey && privateKey && !vapidKeysMatch(publicKey, privateKey),
       );
+      if (keysMismatch) {
+        this.logger.error(
+          'VAPID_PRIVATE_KEY no corresponde a VAPID_PUBLIC_KEY: ningún aviso push va a llegar. Genera un par nuevo con `npx web-push generate-vapid-keys` y pon las dos claves juntas.',
+        );
+      }
+      this.cached = {
+        signature,
+        vapid:
+          publicKey && privateKey ? { subject, publicKey, privateKey } : null,
+        keysMismatch,
+      };
     }
+    return this.cached;
+  }
+
+  private get vapid(): Vapid | null {
+    return this.keys().vapid;
+  }
+
+  /** La clave privada no es la pareja de la pública (mal configuradas). */
+  private get keysMismatch(): boolean {
+    return this.keys().keysMismatch;
   }
 
   /** Clave pública para `pushManager.subscribe`. Sin claves, `null` (la web no ofrece los avisos). */

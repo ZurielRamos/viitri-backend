@@ -16,7 +16,8 @@ export function whatsappConfig(
     url,
     token,
     inboxId,
-    templateName: config.get<string>('WHATSAPP_TEMPLATE_NAME', 'autenticacion'),
-    languageCode: config.get<string>('WHATSAPP_LANGUAGE_CODE', 'es'),
+    templateName:
+      config.get<string>('WHATSAPP_TEMPLATE_NAME') || 'autenticacion',
+    languageCode: config.get<string>('WHATSAPP_LANGUAGE_CODE') || 'es',
   };
 }

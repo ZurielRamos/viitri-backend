@@ -8,6 +8,7 @@ import { createAiOptions } from './ai/ai.config.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { SettingsModule } from './settings/settings.module.js';
 import { validateEnv } from './config/env.validation.js';
 import { databaseOptions } from './database/database.options.js';
 import { InvitationsModule } from './invitations/invitations.module.js';
@@ -49,6 +50,7 @@ import { UsersModule } from './users/users.module.js';
     BusinessesModule,
     InvitationsModule,
     AdminModule,
+    SettingsModule,
     CustomersModule,
     CatalogModule,
     MenuModule,

@@ -8,9 +8,11 @@ import {
 } from './notification-sender.js';
 import { NotificationsService } from './notifications.service.js';
 import { AccountMailService } from './mail/account-mail.service.js';
-import { DEFAULT_MAIL_FROM, mailTransport } from './mail/mail.config.js';
+import { DynamicMailTransport } from './mail/dynamic-mail.transport.js';
+import { DEFAULT_MAIL_FROM } from './mail/mail.config.js';
 import { PaymentReceiptMail } from './mail/payment-receipt.mail.js';
 import { PlanReminderMail } from './mail/plan-reminder.mail.js';
+import { PasswordResetMail } from './mail/password-reset.mail.js';
 import { WelcomeMail } from './mail/welcome.mail.js';
 import { LinksModule } from '../links/links.module.js';
 import { WhatsappNotificationsService } from './whatsapp/whatsapp-notifications.service.js';
@@ -25,12 +27,7 @@ import { MailNotificationSender } from './senders/smtp-email.sender.js';
       inject: [ConfigService],
       // Corre al arrancar: un SMTP_HOST o SMTP_PORT inválido detiene la app aquí.
       useFactory: (config: ConfigService) => ({
-        transport: mailTransport({
-          host: config.get<string>('SMTP_HOST'),
-          port: Number(config.get<string>('SMTP_PORT', '587')),
-          user: config.get<string>('SMTP_USER'),
-          pass: config.get<string>('SMTP_PASS'),
-        }),
+        transport: new DynamicMailTransport(config),
         from: config.get<string>('MAIL_FROM', DEFAULT_MAIL_FROM),
       }),
     }),
@@ -48,6 +45,7 @@ import { MailNotificationSender } from './senders/smtp-email.sender.js';
     },
     NotificationsService,
     WelcomeMail,
+    PasswordResetMail,
     PlanReminderMail,
     PaymentReceiptMail,
     AccountMailService,

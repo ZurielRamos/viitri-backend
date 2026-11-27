@@ -9,6 +9,10 @@ import {
   PlanReminderMail,
   type PlanReminderData,
 } from './plan-reminder.mail.js';
+import {
+  PasswordResetMail,
+  type PasswordResetData,
+} from './password-reset.mail.js';
 import { WelcomeMail } from './welcome.mail.js';
 
 @Injectable()
@@ -87,6 +91,24 @@ export class AccountMailService {
     } catch (error) {
       this.logger.error(
         `No se pudo enviar el comprobante a ${to.email}`,
+        error as Error,
+      );
+    }
+  }
+
+  /** Correo de recuperación de contraseña. Nunca lanza. */
+  async sendPasswordReset(
+    to: { name: string; email: string },
+    data: Omit<PasswordResetData, 'name' | 'logoUrl'>,
+  ): Promise<void> {
+    try {
+      await this.mailer.send(PasswordResetMail, {
+        to: { name: to.name, address: to.email },
+        data: { ...data, name: to.name, logoUrl: this.logoUrl() },
+      });
+    } catch (error) {
+      this.logger.error(
+        `No se pudo enviar la recuperación de contraseña a ${to.email}`,
         error as Error,
       );
     }

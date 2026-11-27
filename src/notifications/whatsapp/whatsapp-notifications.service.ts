@@ -19,23 +19,36 @@ export type ButtonTarget = { url: string; days?: number } | { code: string };
 @Injectable()
 export class WhatsappNotificationsService {
   private readonly logger = new Logger(WhatsappNotificationsService.name);
-  private readonly client: WhatsappTemplateClient | null;
-  private readonly language: string;
+  private cached: { signature: string; client: WhatsappTemplateClient } | null =
+    null;
 
   constructor(
     private readonly config: ConfigService,
     private readonly links: ShortLinksService,
-  ) {
-    const url = config.get<string>('WHATSAPP_TEMPLATE_API_URL');
-    const token = config.get<string>('WHATSAPP_API_TOKEN');
-    const inboxId = config.get<string>('WHATSAPP_INBOX_ID');
-    this.client =
-      url && token && inboxId
-        ? new WhatsappTemplateClient({ url, token, inboxId })
-        : null;
-    this.language =
-      config.get<string>('WHATSAPP_TEMPLATES_LANGUAGE_CODE') ||
-      config.get<string>('WHATSAPP_LANGUAGE_CODE', 'es');
+  ) {}
+
+  /** Se lee en cada envío: los cambios desde el panel rigen sin reiniciar. */
+  private get client(): WhatsappTemplateClient | null {
+    const url = this.config.get<string>('WHATSAPP_TEMPLATE_API_URL');
+    const token = this.config.get<string>('WHATSAPP_API_TOKEN');
+    const inboxId = this.config.get<string>('WHATSAPP_INBOX_ID');
+    if (!url || !token || !inboxId) return null;
+    const signature = `${url}|${token}|${inboxId}`;
+    if (this.cached?.signature !== signature) {
+      this.cached = {
+        signature,
+        client: new WhatsappTemplateClient({ url, token, inboxId }),
+      };
+    }
+    return this.cached.client;
+  }
+
+  private get language(): string {
+    return (
+      this.config.get<string>('WHATSAPP_TEMPLATES_LANGUAGE_CODE') ||
+      this.config.get<string>('WHATSAPP_LANGUAGE_CODE') ||
+      'es'
+    );
   }
 
   /** Crea el enlace corto de un botón, para guardarlo y usarlo en varios avisos (seguimiento de un pedido). */

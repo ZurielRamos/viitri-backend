@@ -130,6 +130,22 @@ export class UsersService {
     });
   }
 
+  async setPasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.users.update(id, { passwordHash });
+  }
+
+  /** Nuevo WhatsApp de la cuenta; cierra sus sesiones abiertas. 409 si otro lo usa. */
+  async setPhone(id: string, phone: string): Promise<User> {
+    await this.findByIdOrFail(id);
+    try {
+      await this.users.update(id, { phone });
+    } catch (error) {
+      throw toConflict(error);
+    }
+    await this.users.increment({ id }, 'sessionVersion', 1);
+    return this.findByIdOrFail(id);
+  }
+
   async setPlatformRole(id: string, role: PlatformRole): Promise<User> {
     const user = await this.findByIdOrFail(id);
     user.platformRole = role;

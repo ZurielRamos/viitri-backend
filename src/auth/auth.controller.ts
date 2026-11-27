@@ -5,15 +5,17 @@ import { CurrentUser } from './decorators/current-user.decorator.js';
 import { Public } from './decorators/public.decorator.js';
 import { LoginDto } from './dto/login.dto.js';
 import {
-  GoogleLoginDto,
-  SocialVerifyPhoneDto,
   RegisterWithPhoneDto,
   RequestOtpDto,
   VerifyOtpDto,
 } from './dto/phone-auth.dto.js';
 import { OnboardingDto } from './dto/onboarding.dto.js';
-import { RegisterDto } from './dto/register.dto.js';
 import { RedeemHandoffDto } from './dto/redeem-handoff.dto.js';
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto/password-reset.dto.js';
+import { PasswordResetService } from './password-reset/password-reset.service.js';
 import { SessionHandoffService } from './handoff/session-handoff.service.js';
 
 @Controller('auth')
@@ -21,19 +23,35 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly handoff: SessionHandoffService,
+    private readonly passwordReset: PasswordResetService,
   ) {}
 
-  @Public()
-  @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
-  }
-
+  /**
+   * Correo y contraseña: solo para el equipo de viitri (panel de
+   * administración). Los negocios entran únicamente con su WhatsApp.
+   */
   @Public()
   @HttpCode(200)
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  /** Siempre responde 200: no revela si el correo tiene cuenta. */
+  @Public()
+  @HttpCode(200)
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.passwordReset.request(dto.email);
+    return { ok: true };
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.passwordReset.reset(dto.token, dto.password);
+    return { ok: true };
   }
 
   /** Siempre responde 200: no revela si el número tiene cuenta. */
@@ -56,21 +74,6 @@ export class AuthController {
   @Post('register-phone')
   registerWithPhone(@Body() dto: RegisterWithPhoneDto) {
     return this.auth.registerWithPhone(dto);
-  }
-
-  @Public()
-  @HttpCode(200)
-  @Post('google')
-  loginWithGoogle(@Body() dto: GoogleLoginDto) {
-    return this.auth.loginWithGoogle(dto);
-  }
-
-  /** Último paso de Google: verificar el WhatsApp. */
-  @Public()
-  @HttpCode(200)
-  @Post('social/verify-phone')
-  verifySocialPhone(@Body() dto: SocialVerifyPhoneDto) {
-    return this.auth.verifySocialPhone(dto);
   }
 
   /** Código de un solo uso para abrir la sesión en la tienda (otro subdominio). */

@@ -6,17 +6,22 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { PlatformRoles } from '../auth/decorators/platform-roles.decorator.js';
-import { PaginationQueryDto, paginated } from '../common/pagination.dto.js';
 import { BusinessesService } from '../businesses/businesses.service.js';
 import type { User } from '../users/entities/user.entity.js';
 import { PlatformRole } from '../users/platform-role.enum.js';
 import { UsersService } from '../users/users.service.js';
+import { AdminService } from './admin.service.js';
 import { ChangePlanDto } from './dto/change-plan.dto.js';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto.js';
+import { ListBusinessesQueryDto } from './dto/list-businesses.dto.js';
+import { ListUsersQueryDto } from './dto/list-users.dto.js';
 import { SetPaidUntilDto } from './dto/set-paid-until.dto.js';
+import { SetPhoneDto } from './dto/set-phone.dto.js';
 import { UpdatePlatformRoleDto } from './dto/update-platform-role.dto.js';
 
 /**
@@ -28,16 +33,30 @@ import { UpdatePlatformRoleDto } from './dto/update-platform-role.dto.js';
 @Controller('admin')
 export class AdminController {
   constructor(
+    private readonly admin: AdminService,
     private readonly users: UsersService,
     private readonly businesses: BusinessesService,
   ) {}
 
+  /** Cifras del resumen del panel. */
+  @Get('stats')
+  stats() {
+    return this.admin.stats();
+  }
+
   @Get('users')
-  async listUsers(@Query() query: PaginationQueryDto) {
-    return paginated(
-      await this.users.findAll({ skip: query.skip, take: query.limit }),
-      query,
-    );
+  listUsers(@Query() query: ListUsersQueryDto) {
+    return this.admin.listUsers(query);
+  }
+
+  @Post('users')
+  createUser(@Body() dto: CreateAdminUserDto) {
+    return this.admin.createUser(dto);
+  }
+
+  @Get('users/:userId')
+  getUser(@Param('userId', ParseUUIDPipe) userId: string) {
+    return this.admin.getUser(userId);
   }
 
   @Patch('users/:userId/platform-role')
@@ -54,12 +73,26 @@ export class AdminController {
     return this.users.setPlatformRole(userId, dto.platformRole);
   }
 
+  /**
+   * Cambia el WhatsApp con el que entra una cuenta (soporte). Sus sesiones
+   * abiertas se cierran: entra de nuevo con el número nuevo.
+   */
+  @Patch('users/:userId/phone')
+  setPhone(
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Body() dto: SetPhoneDto,
+  ) {
+    return this.users.setPhone(userId, dto.phone);
+  }
+
   @Get('businesses')
-  async listBusinesses(@Query() query: PaginationQueryDto) {
-    return paginated(
-      await this.businesses.findAll({ skip: query.skip, take: query.limit }),
-      query,
-    );
+  listBusinesses(@Query() query: ListBusinessesQueryDto) {
+    return this.admin.listBusinesses(query);
+  }
+
+  @Get('businesses/:businessId')
+  getBusiness(@Param('businessId', ParseUUIDPipe) businessId: string) {
+    return this.admin.getBusiness(businessId);
   }
 
   /** Cambio de plan manual, hasta que exista el cobro en línea. */

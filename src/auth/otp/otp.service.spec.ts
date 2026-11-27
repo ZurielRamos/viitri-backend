@@ -69,7 +69,7 @@ describe('OtpService', () => {
   ) =>
     new OtpService(
       store,
-      whatsapp as WhatsappAuthTemplateClient | null,
+      { current: () => whatsapp as WhatsappAuthTemplateClient | null },
       { get: () => nodeEnv } as unknown as ConfigService,
     );
 

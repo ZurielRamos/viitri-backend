@@ -11,6 +11,7 @@ import * as argon2 from 'argon2';
 import type { User } from '../users/entities/user.entity.js';
 import { AccountMailService } from '../notifications/mail/account-mail.service.js';
 import { normalizeWhatsappNumber } from '../notifications/whatsapp/whatsapp-phone.js';
+import { PlatformRole } from '../users/platform-role.enum.js';
 import { UsersService } from '../users/users.service.js';
 import type { JwtPayload } from './authenticated-request.js';
 import type { LoginDto } from './dto/login.dto.js';
@@ -44,6 +45,9 @@ export type VerifyOtpResponse =
 
 /** 180 días: la tablet de la cocina no debe pedir el PIN cada mes. */
 const TEAM_SESSION_SECONDS = 180 * 24 * 60 * 60;
+
+/** Sesión sin "recordarme": un día. */
+const SHORT_SESSION_SECONDS = 24 * 60 * 60;
 
 const OTP_TARGET = { purpose: 'auth', scope: 'platform' } as const;
 const REGISTRATION_TOKEN_TYP = 'phone-registration';
@@ -130,11 +134,19 @@ export class AuthService {
     const user = await this.users.findByEmailWithPassword(dto.email);
     const hash = user?.passwordHash ?? (await this.dummyHash);
     const valid = await argon2.verify(hash, dto.password);
-    // Las cuentas creadas con WhatsApp no tienen contraseña: nunca entran por aquí.
-    if (!user?.passwordHash || !valid) {
+    // Las cuentas creadas con WhatsApp no tienen contraseña: nunca entran por
+    // aquí. Y con contraseña solo entra el equipo de viitri (super admin).
+    if (
+      !user?.passwordHash ||
+      !valid ||
+      user.platformRole !== PlatformRole.SuperAdmin
+    ) {
       throw new UnauthorizedException('Credenciales inválidas.');
     }
-    return this.issueToken(await this.users.findByIdOrFail(user.id));
+    return this.issueToken(
+      await this.users.findByIdOrFail(user.id),
+      dto.remember === false ? SHORT_SESSION_SECONDS : undefined,
+    );
   }
 
   /** Envía el código por WhatsApp. No revela si el número ya tiene cuenta. */
@@ -365,8 +377,17 @@ export class AuthService {
     };
   }
 
-  private async issueToken(user: User): Promise<AuthResponse> {
+  private async issueToken(
+    user: User,
+    expiresIn?: number,
+  ): Promise<AuthResponse> {
     const payload: JwtPayload = { sub: user.id, typ: 'user' };
-    return { accessToken: await this.jwt.signAsync(payload), user };
+    return {
+      accessToken: await this.jwt.signAsync(
+        payload,
+        expiresIn ? { expiresIn } : undefined,
+      ),
+      user,
+    };
   }
 }

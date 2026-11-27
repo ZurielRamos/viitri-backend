@@ -12,9 +12,14 @@ import { whatsappConfig } from '../notifications/whatsapp/whatsapp.config.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { PasswordResetService } from './password-reset/password-reset.service.js';
 import { SessionHandoffService } from './handoff/session-handoff.service.js';
 import { GoogleIdentityVerifier } from './google/google-identity.verifier.js';
-import { OtpService, WHATSAPP_CLIENT } from './otp/otp.service.js';
+import {
+  OtpService,
+  WHATSAPP_CLIENT,
+  type WhatsappClientResolver,
+} from './otp/otp.service.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { PlatformRolesGuard } from './guards/platform-roles.guard.js';
 
@@ -41,15 +46,30 @@ import { PlatformRolesGuard } from './guards/platform-roles.guard.js';
   providers: [
     AuthService,
     SessionHandoffService,
+    PasswordResetService,
     OtpService,
     GoogleIdentityVerifier,
     { provide: TTL_STORE, useClass: TypeOrmTtlStore },
     {
       provide: WHATSAPP_CLIENT,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const settings = whatsappConfig(config);
-        return settings ? new WhatsappAuthTemplateClient(settings) : null;
+      useFactory: (config: ConfigService): WhatsappClientResolver => {
+        let cached: { key: string; client: WhatsappAuthTemplateClient } | null =
+          null;
+        return {
+          current() {
+            const settings = whatsappConfig(config);
+            if (!settings) return null;
+            const key = JSON.stringify(settings);
+            if (cached?.key !== key) {
+              cached = {
+                key,
+                client: new WhatsappAuthTemplateClient(settings),
+              };
+            }
+            return cached.client;
+          },
+        };
       },
     },
     // El orden importa: primero autenticación, luego rol de plataforma.
